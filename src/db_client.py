@@ -1,3 +1,5 @@
+
+import logging
 from typing import List
 from xmlrpc.client import Boolean
 import psycopg2
@@ -6,6 +8,10 @@ import os
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 import psycopg2.errors as perrs
 import csv
+
+
+logger = logging.getLogger()
+logging.basicConfig(level=logging.INFO)
 
 
 class DbClient():
@@ -51,7 +57,7 @@ class DbClient():
         try:
             cursor.execute(sql_create_db);
         except perrs.DuplicateDatabase as ex:
-            print(f"Database '{database}' already exists.")
+            logger.warning(f"Database '{database}' already exists.")
 
         # Create db if it doesn't exist
         return psycopg2.connect(
@@ -60,6 +66,7 @@ class DbClient():
             user=self.username,
             password=self.password
         )
+
 
     def get_cursor(self):
         return self.db_connection.cursor()
@@ -80,22 +87,19 @@ class DbClient():
             sql_drop_existing = f"drop table if exists \"{table}\""
             cursor.execute(sql_drop_existing)
             self.db_connection.commit()
-            print(f"Dropped table [{table}].")
+            logger.warning(f"Dropped table [{table}].")
 
         # Create table statement
         cols = [f"\"{c}\"  varchar({column_width})" for c in columns]
         cols.insert(0, "id BIGSERIAL PRIMARY KEY NOT NULL")     # Add id column
         sql_create_table = ", \n".join(cols)
         sql_create_table = f"create table {table} \n (\n{sql_create_table}\n);"
-        print(sql_create_table)
-
-
-        # sql_create_table = "create table test123();"
+        logger.info(sql_create_table)
 
         # Actually create table
         cursor.execute(sql_create_table)
         self.db_connection.commit()
-        print(f"Created table '{table}'.")
+        logger.info(f"Created table '{table}'.")
 
 
     def get_file_columns(
@@ -105,7 +109,7 @@ class DbClient():
     ):
         with open(filepath, "r") as f:
             csv_reader =  csv.DictReader(f, delimiter=delimiter)
-            print(f"Columns: {csv_reader.fieldnames}")
+            logger.info(f"Columns: {csv_reader.fieldnames}")
 
             # Sanity check
             col_count = len(csv_reader.fieldnames)
@@ -113,9 +117,9 @@ class DbClient():
             print(f"Number of parsed header columns: {col_count}")
             print(f"Number of delimiters in header: {delim_count}")
             if col_count - delim_count > 1:
-                print("WARNING: Are you 100% sure you've specified the correct delimiter?")
+                logger.warning("WARNING: Are you 100% sure you've specified the correct delimiter?")
             else:
-                print(f"OK: Number of parsed header columns ({col_count}) = Number of delimiters in header + 1 ({delim_count} + 1)")
+                logger.info(f"OK: Number of parsed header columns ({col_count}) = Number of delimiters in header + 1 ({delim_count} + 1)")
 
             return csv_reader.fieldnames
 
@@ -132,12 +136,12 @@ class DbClient():
             f.readline()
 
             # Copy to db
-            print(f"Copying file '{filepath}' into db '{self.database}.{table}'...")
+            logger.info(f"Copying file '{filepath}' into db '{self.database}.{table}'...")
             cursor = self.get_cursor()
             cursor.copy_from(f, table, columns=columns, sep=delimiter)
             self.db_connection.commit()
             self.db_connection.close()
-            print("Done.")
+            logger.info("Done.")
 
 
     def load_file(
@@ -148,12 +152,12 @@ class DbClient():
         column_width: int = 256
     ):
         if not os.path.exists(filepath):
-            print(f"File not found: {filepath}")
+            logger.error(f"File not found: {filepath}")
             return
 
         if not table:
             table = "tmp_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-            print(f"No tablename provided, using [{table}].")
+            logger.warning(f"No tablename provided, using [{table}].")
 
         columns = self.get_file_columns(filepath=filepath, delimiter=delimiter)
 
@@ -171,5 +175,5 @@ class DbClient():
             delimiter=delimiter
         )
 
-        print(f"View your data on [{self.database}] with:")
-        print(f"select * from {table} limit 10;")
+        logger.info(f"View your data on [{self.database}] with:")
+        logger.info(f"select * from {table} limit 10;")
