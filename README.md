@@ -38,11 +38,11 @@ Options:
   --server TEXT                   Server/Host on which the database resides.
                                   [default: localhost]
   --database TEXT                 Database to load data into. Will be created
-                                  if doesn't exist.  [default: pgymport]
+                                  if doesn't exist.  [default: pgymportdb]
   --table TEXT                    Create the data with a specific table name.
                                   Will drop and recreate this table if it
-                                  exists so use carefully!  [default:
-                                  tmp_[YYYYmmDD_HHMMSS_fff]]
+                                  exists so use carefully! Uses convention
+                                  'tmp_[YYYYmmDD_HHMMSS_fff]' if not provided.
   --username TEXT                 Postgres username  [default: postgres]
   --password TEXT                 Postgres user password
   --port INTEGER                  Port  [default: 5432]
