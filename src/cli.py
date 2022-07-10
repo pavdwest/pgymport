@@ -31,8 +31,11 @@ def upload(
         port=port
     )
 
+    if table == "tmp_[YYYYmmDD_HHMMSS_fff]":
+        table = None
+
     client.load_file(
-        filepath="data/friends.csv",
+        filepath=filepath,
         table=table,
         delimiter=delimiter,
         column_width=column_width
